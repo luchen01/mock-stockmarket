@@ -9,7 +9,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 const morgan = require('morgan');
 app.use(morgan('dev'));
 
-const {traders, orders, pool} = require('./db');
+const {traders, orders, pool, portfolio} = require('./db');
 const {promisify} = require('util');
 const fs = require('fs');
 const readFile = promisify(fs.readFile);
@@ -40,13 +40,26 @@ app.post('/orders', async function(req, res, next){
 
 app.get('/orders', async function(req, res, next){
   try{
-    let results = await orders.create({
-      trader_id: req.body.trader_id,
-      type: req.body.type,
-      ticker: req.body.ticker,
-      price: req.body.price,
-      quantity: req.body.quantity
-    });
+    let results = await orders.getAll();
+    res.json(results.rows)
+  } catch (e) {
+    next(e);
+  }
+})
+
+app.get('/traders/:trader_id/portfolio', async function( req, res, next){
+  try{
+    let results = await portfolio.create({
+      trader_id: req.params.trader_id
+    })
+  } catch(e){
+    next(e);
+  }
+} )
+
+app.get('/portfolio', async function(req, res, next){
+  try {
+    let results = await portfolio.getAll();
     res.json(results.rows)
   } catch (e) {
     next(e);
