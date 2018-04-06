@@ -14,37 +14,42 @@ const traders = {
 }
 
 const orders = {
+  getAll: async function(order){
+    return await pool.query(
+      `SELECT * FROM orders`)
+  },
   create: async function(order){
     //parameterized query
     let matchingOrders;
     if(order.type === 'bid'){
       matchingOrders = await pool.query(
-        `SELECT * FROM order WHERE
+        `SELECT * FROM orders WHERE
           ticker = $1 AND type = 'ask' AND price <= $2
           AND fulfilled = 0 LIMIT 1`,
       [order.ticker, order.price]);
     } else {
       matchingOrders = await pool.query(
-        `SELECT * FROM order WHERE
+        `SELECT * FROM orders WHERE
           ticker = $1 AND type = 'bid' AND price >= $2 LIMIT 1`,
       [order.ticker, order.price]);
     }
 
     if(matchingOrders.rows.length){
       //found match!
+      console.log("matching orders", matchingOrders.rows);
       let matchingId = matchingOrders.rows[0].id;
       await pool.query(
         `UPDATE orders SET fulfilled = quantity WHERE id = $1`,
-        [matchingID]);
+        [matchingId]);
       return await pool.query(
-        `INSERT INTO orders (trader_id, type,ticker, price, quantity, fulfilled)
-          VALUE ($1, $2, $3, $4, $5)`,
-        [order.trader_id, order.type, order.ticker, order.price, order.quantity]);
+        `INSERT INTO orders (trader_id, type, ticker, price, quantity, fulfilled)
+          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [order.trader_id, order.type, order.ticker, order.price, order.quantity, order.quantity]);
     } else {
       //no match
       return await pool.query(
         `INSERT INTO orders (trader_id, type,ticker, price, quantity)
-          VALUE ($1, $2, $3, $4, $5)`,
+          VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [order.trader_id, order.type, order.ticker, order.price, order.quantity]);
     }
   }
